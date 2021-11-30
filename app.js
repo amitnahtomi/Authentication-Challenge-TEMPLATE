@@ -1,6 +1,8 @@
 /* write your server code here */
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const saltRounds = bcrypt.genSaltSync(10);
 const app = express();
 app.use(express.json());
 
@@ -15,19 +17,21 @@ app.post('/users/register', (req, res, next)=>{
             res.end();
         }
     }
-    USERS.push({ email: req.body.email, name: req.body.user, password: req.body.password, isAdmin: false })
+    const password = bcrypt.hashSync(req.body.password, saltRounds);
+    USERS.push({ email: req.body.email, name: req.body.user, password: password, isAdmin: false })
     INFORMATION.push({email: req.body.email, info: `${req.body.user} info`})
+    console.log(USERS);
     res.status(201).send("Register Success");
 })
 
 app.post('/users/login', (req, res ,next)=>{
     let target;
     for(let i = 0; i < USERS.length; i++) {
-        if(USERS[i].email === req.body.email && USERS[i].password !== req.body.password) {
+        if(USERS[i].email === req.body.email && !bcrypt.compare(req.body.password, USERS[i].password)) {
             res.status(403).send("User or Password incorrect");
             res.end();
         }
-        if(USERS[i].email === req.body.email && USERS[i].password === req.body.password) {
+        if(USERS[i].email === req.body.email && bcrypt.compare(req.body.password, USERS[i].password)) {
             target = USERS[i];
         }
     }
@@ -37,18 +41,20 @@ app.post('/users/login', (req, res ,next)=>{
     }
     else {
         const token = jwt.sign(target, 'Rc123456!', {expiresIn: '10s'});
-        REFRESHTOKENS.push(token);
-        res.status(200).send({accessToken: token, refreshToken: token , email: target.email, name: target.name, isAdmin: target.isAdmin})
+        const rToken = REFRESHTOKENS.length;
+        REFRESHTOKENS.push(rToken);
+        res.status(200).send({accessToken: token, refreshToken: rToken , email: target.email, name: target.name, isAdmin: target.isAdmin})
         res.end();
     }
 })
 
 app.post("/users/tokenValidate", (req, res, next)=>{
-    const token = req.headers.Authorization.split(" ")[1];
+    const token = req.header('Authorization').split(" ")[1];
+    console.log(token);
     if(token === undefined) {
         res.status(401).send("Access Token Required")
     }
-    if(!REFRESHTOKENS.includes(token)) {
+    if(!jwt.verify(token, 'Rc123456!')) {
         res.status(403).send("Invalid Access Token");
         res.end();
     }

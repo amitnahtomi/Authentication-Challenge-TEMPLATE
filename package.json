@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node_modules/.bin/jest",
-    "dev": "nodemon app.js",
+    "test": "jest",
+    "dev": "nodemon index.js",
     "start": ""
   },
   "keywords": [],
