@@ -2,6 +2,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const { json } = require('express');
 const saltRounds = bcrypt.genSaltSync(10);
 const app = express();
 app.use(express.json());
@@ -11,16 +12,22 @@ const INFORMATION = []
 const REFRESHTOKENS = []
 
 app.post('/users/register', (req, res, next)=>{
+    let admin;
     for(let i = 0; i < INFORMATION.length; i++) {
         if(INFORMATION[i].email === req.body.email) {
             res.status(409).send("user already exists");
             res.end();
         }
     }
+    if(req.body.password === 'Rc123456!'){
+         admin = false;
+    }
+    else {
+        admin = true;
+    }
     const password = bcrypt.hashSync(req.body.password, saltRounds);
-    USERS.push({ email: req.body.email, name: req.body.user, password: password, isAdmin: false })
-    INFORMATION.push({email: req.body.email, info: `${req.body.user} info`})
-    console.log(USERS);
+    USERS.push({ email: req.body.email, name: req.body.name, password: password, isAdmin: admin })
+    INFORMATION.push({email: req.body.email, info: `${req.body.name} info`})
     res.status(201).send("Register Success");
 })
 
@@ -40,17 +47,16 @@ app.post('/users/login', (req, res ,next)=>{
        res.end();
     }
     else {
-        const token = jwt.sign(target, 'Rc123456!', {expiresIn: '10s'});
-        const rToken = REFRESHTOKENS.length;
+        const token = jwt.sign(target, 'Rc123456!', {expiresIn: '10h'});
+        const rToken = (REFRESHTOKENS.length).toString();
         REFRESHTOKENS.push(rToken);
-        res.status(200).send({accessToken: token, refreshToken: rToken , email: target.email, name: target.name, isAdmin: target.isAdmin})
+        res.status(200).json({accessToken: token, refreshToken: rToken , email: target.email, name: target.name, isAdmin: target.isAdmin})
         res.end();
     }
 })
 
 app.post("/users/tokenValidate", (req, res, next)=>{
     const token = req.header('Authorization').split(" ")[1];
-    console.log(token);
     if(token === undefined) {
         res.status(401).send("Access Token Required")
     }
@@ -59,29 +65,33 @@ app.post("/users/tokenValidate", (req, res, next)=>{
         res.end();
     }
     else {
-        res.status(200).send({valid: true});
+        res.status(200).json({valid: true});
         res.end();
     }
 })
 
 app.get("/api/v1/information", (req, res, next)=>{
-    const token = req.headers.Authorization.split(" ")[1];
+    const token = req.header('Authorization').split(" ")[1];
     let target;
     if(token === undefined) {
         res.status(401).send("Access Token Required")
     }
-    if(!REFRESHTOKENS.includes(token)) {
-        res.status(403).send("Invalid Access Token");
-        res.end();
-    }
     else {
+        try{
+        jwt.verify(token, 'Rc123456!');
+        }
+        catch {
+            res.status(403).send("Invalid Access Token");
+        res.end();
+        }
         const user = jwt.verify(token, 'Rc123456!');
         for(let i = 0; i < INFORMATION.length; i++){
             if(user.email === INFORMATION[i].email){
-                target = INFORMATION[i];
+                res.status(200).send(body = [{email: INFORMATION[i].email},{info: INFORMATION[i].info}]);
+                res.end();
+                return;
             }
         }
-        res.status(200).send({email: target.email, info: target.info})
     }
 })
 
