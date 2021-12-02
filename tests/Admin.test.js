@@ -21,18 +21,18 @@ describe('Admin Tests', () => {
     test('Only Admin Can Get Users List', async (done) => {
 
         const adminLoginRes = await request(server)
-            .post('/users/login')
-            .send(userAdminMock)
-
+        .post('/users/login')
+        .send(userAdminMock)
+        
         expect(adminLoginRes.status).toBe(200)
         expect(adminLoginRes.body.isAdmin).toBe(true)
         expect(typeof adminLoginRes.body.accessToken).toBe('string')
         expect(adminLoginRes.body.accessToken.length > 100).toBe(true)
-
+        
         const infoRes = await request(server)
-            .get('/api/v1/information')
-            .set('authorization', `bearer ${adminLoginRes.body.accessToken}`)
-
+        .get('/api/v1/information')
+        .set('authorization', `bearer ${adminLoginRes.body.accessToken}`)
+        
         expect(infoRes.status).toBe(200)
         expect(infoRes.body.length > 0).toBe(true)
 

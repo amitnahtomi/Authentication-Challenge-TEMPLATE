@@ -7,7 +7,7 @@ const app = express();
 app.use(express.json());
 
 const USERS = [{ email: "admin@email.com", name: "admin", password: bcrypt.hashSync('Rc123456!', saltRounds), isAdmin: true }] 
-const INFORMATION = []
+const INFORMATION = [{email: "admin@email.com", info: "admin info"}]
 const REFRESHTOKENS = []
 
 app.post('/users/register', (req, res, next)=>{
@@ -70,23 +70,23 @@ app.post("/users/tokenValidate", (req, res, next)=>{
 })
 
 app.get("/api/v1/information", (req, res, next)=>{
-    const token = req.header('Authorization').split(" ")[1];
-    let target;
-    if(token === undefined) {
-        res.status(401).send("Access Token Required")
+    if(req.header('Authorization') === undefined) {
+        res.status(401).send("Access Token Required");
+        res.end();
     }
     else {
+        const token = req.header('Authorization').split(" ")[1];
         try{
-        jwt.verify(token, 'Rc123456!');
+            jwt.verify(token, 'Rc123456!');
         }
         catch {
             res.status(403).send("Invalid Access Token");
-        res.end();
+            res.end();
         }
         const user = jwt.verify(token, 'Rc123456!');
         for(let i = 0; i < INFORMATION.length; i++){
             if(user.email === INFORMATION[i].email){
-                res.status(200).send(body = [{email: INFORMATION[i].email},{info: INFORMATION[i].info}]);
+                res.status(200).send([{email: INFORMATION[i].email},{info: INFORMATION[i].info}]);
                 res.end();
                 return;
             }
@@ -107,13 +107,8 @@ app.post("/users/token", (req, res, next)=>{
     }
     else {
         const user = jwt.verify(token, 'Rc123456!');
-        try{
         const newToken = jwt.sign(user, 'Rc123456!', {});
         res.status(200).json({accessToken: newToken})
-        }
-        catch(err) {
-            console.log(err);
-        }
     }
 })
 
